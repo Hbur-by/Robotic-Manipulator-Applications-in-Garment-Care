@@ -36,3 +36,5 @@ desktop.ini
 .DS_Store
 .idea/
 *.swp
+# --- 本地辅助脚本 ---
+_scripts/
