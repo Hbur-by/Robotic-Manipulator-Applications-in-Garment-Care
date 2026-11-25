@@ -1,0 +1,38 @@
+# --- 嵌套旧仓库备份（不入库）---
+.git_v0.1_backup/
+
+# --- 构建与依赖 ---
+.pio/
+.pioenvs/
+.piolibdeps/
+build/
+dist/
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# --- ESP32 / PlatformIO ---
+*.bin
+*.elf
+*.map
+.vscode/.browse.c_cpp.db*
+.ccls-cache/
+
+# --- Office 临时文件 ---
+~$*.docx
+~$*.xlsx
+~$*.pptx
+~$*.doc
+~$*.xls
+*.tmp
+Thumbs.db
+desktop.ini
+
+# --- 系统 / 编辑器 ---
+.DS_Store
+.idea/
+*.swp

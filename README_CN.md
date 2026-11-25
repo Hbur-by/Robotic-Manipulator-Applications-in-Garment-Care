@@ -2,9 +2,7 @@
 
 > **Robotic Manipulator Applications in Garment Care**
 >
-> 机器人创赛进入国赛阶段 | 大创进行校赛阶段
->
-> 版本：v2.0.0（第一次国赛完善版）
+> 版本：v0.2.0
 
 ---
 
