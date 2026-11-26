@@ -7,22 +7,27 @@
   正文 宋体 16pt
   图注 宋体 14pt 居中
 A4 页面，左右 1.25in、上下 1in 页边距。
-四张图为预留图位（含渲染要点），后续渲染图到位后原位替换。
+四张图按附件1模板的 2×2 图位嵌入，图片文件与图注同名。
 """
 
 import os
 from docx import Document
 from docx.shared import Pt, Cm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL, WD_ROW_HEIGHT_RULE
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
 HEI = "黑体"
 SONG = "宋体"
 
-OUT_DIR = r"C:\Users\wegghbur\Desktop\rmagc\文档\创新创业大会\报送\电气与电子工程学院－一体化智能衣物管家机器人"
+HERE = os.path.dirname(os.path.abspath(__file__))
+OUT_DIR = os.path.abspath(os.path.join(
+    HERE, "..", "报送", "电气与电子工程学院－一体化智能衣物管家机器人"))
 OUT_DOCX = os.path.join(OUT_DIR, "作品简介.docx")
+IMG_DIR = os.path.join(OUT_DIR, "图片")
+IMG_WIDTH = Cm(6.4)
+COL_WIDTH = Cm(6.65)
 
 
 def set_run(run, font=SONG, size=16, bold=False, color=None):
@@ -98,10 +103,57 @@ def caption(cell, text):
     p = cell.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     pf = p.paragraph_format
-    pf.space_before = Pt(3)
+    pf.space_before = Pt(0)
     pf.space_after = Pt(0)
     pf.line_spacing = 1.0
     set_run(p.add_run(text), font=SONG, size=14)
+
+
+def set_table_borders_none(table):
+    tblPr = table._tbl.tblPr
+    old = tblPr.find(qn("w:tblBorders"))
+    if old is not None:
+        tblPr.remove(old)
+    borders = OxmlElement("w:tblBorders")
+    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        el = OxmlElement("w:" + edge)
+        el.set(qn("w:val"), "nil")
+        borders.append(el)
+    layout = tblPr.find(qn("w:tblLayout"))
+    if layout is not None:
+        layout.addprevious(borders)
+    else:
+        tblPr.append(borders)
+
+
+def set_cell_margins(cell, twips=14):
+    tcPr = cell._tc.get_or_add_tcPr()
+    mar = OxmlElement("w:tcMar")
+    for side in ("top", "left", "bottom", "right"):
+        el = OxmlElement("w:" + side)
+        el.set(qn("w:w"), str(twips))
+        el.set(qn("w:type"), "dxa")
+        mar.append(el)
+    tcPr.append(mar)
+
+
+def add_image_cell(cell, img_path, title):
+    if not os.path.exists(img_path):
+        raise FileNotFoundError("缺少图片：" + img_path)
+    set_cell_margins(cell)
+    cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+    p = cell.paragraphs[0]
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    pf = p.paragraph_format
+    pf.space_before = Pt(0)
+    pf.space_after = Pt(0)
+    pf.line_spacing = 1.0
+    run = p.add_run()
+    inline = run.add_picture(img_path, width=IMG_WIDTH)
+    docPr = inline._inline.docPr
+    docPr.set("title", title)
+    docPr.set("descr", title)
+    caption(cell, title)
 
 
 def main():
@@ -154,48 +206,47 @@ def main():
         "电气接口，形成“一臂多用”的紧凑集成方案。"
     )
     add_para(doc, intro, font=SONG, size=16, first_indent=0.85, line_spacing=1.5,
-             space_after=4)
+             space_after=0)
 
-    # ================= 四张图（2×2 预留图位） =================
-    images = [
-        ("【图位1 · 作品示意图】", "渲染要点：整机斜45°视角，机械臂+滑轨+控制盒完整入镜，\n标注机械臂、末端执行器、相机、控制单元"),
-        ("【图位2 · 系统架构图】", "渲染要点：四层框图——感知层（单目相机）→决策层\n（检测/映射/轨迹）→执行层（ESP32-S3→PCA9685→舵机）→交互层（网页/APP）"),
-        ("【图位3 · 视觉引导定位流程图】", "渲染要点：采图→预处理→靶标分割→部位像素坐标→\n查表映射→串口下发→增量微调→收敛判定"),
-        ("【图位4 · 机械臂工作空间与运动学验证图】", "渲染要点：D-H坐标系+可达工作空间点云+末端轨迹曲线，\n标注臂长参数与关节限位"),
+    # ================= 四张图（2×2，按附件1模板） =================
+    fig_titles = [
+        "作品示意图",
+        "系统架构图",
+        "视觉引导定位流程图",
+        "机械臂工作空间与运动学验证图",
     ]
-    cap_texts = ["作品示意图", "系统架构图", "视觉引导定位流程图", "机械臂工作空间与运动学验证图"]
 
     table = doc.add_table(rows=2, cols=2)
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
     table.autofit = False
-    for r in table.rows:
-        for c in r.cells:
-            c.width = Cm(7.0)
+    set_table_borders_none(table)
+    # fixed layout + explicit table width (2 x 6.65 cm = 13.3 cm)
+    tblPr = table._tbl.tblPr
+    tblW = tblPr.find(qn("w:tblW"))
+    if tblW is None:
+        tblW = OxmlElement("w:tblW")
+        tblPr.insert(0, tblW)
+    tblW.set(qn("w:w"), "7540")
+    tblW.set(qn("w:type"), "dxa")
+    for col in table.columns:
+        col.width = COL_WIDTH
+    for row in table.rows:
+        row.height = Cm(4.9)
+        row.height_rule = WD_ROW_HEIGHT_RULE.AT_LEAST
+        trPr = row._tr.get_or_add_trPr()
+        cantSplit = OxmlElement("w:cantSplit")
+        trPr.append(cantSplit)
+        for cell in row.cells:
+            cell.width = COL_WIDTH
 
-    for idx, (title, hint) in enumerate(images):
+    for idx, title in enumerate(fig_titles):
         cell = table.cell(idx // 2, idx % 2)
-        set_cell_borders(cell)
-        set_cell_shading(cell)
-        cell_text(cell, title, font=SONG, size=10, bold=True, color=RGBColor(0x80, 0x80, 0x80))
-        p = cell.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        set_run(p.add_run(hint), font=SONG, size=8, color=RGBColor(0xA0, 0xA0, 0xA0))
-        caption(cell, cap_texts[idx])
-        # 行高
-        tr = cell._tc.getparent()
-        trPr = tr.get_or_add_trPr()
-        trHeight = OxmlElement("w:trHeight")
-        trHeight.set(qn("w:val"), "2200")
-        trHeight.set(qn("w:hRule"), "atLeast")
-        trPr.append(trHeight)
-
-    add_para(doc, "（以上图片为预留图位，渲染图完成后原位替换，文件名与图注一致）",
-             font=SONG, size=10.5, align=WD_ALIGN_PARAGRAPH.CENTER,
-             space_before=4, space_after=6, line_spacing=1.0,
-             color=RGBColor(0xA0, 0xA0, 0xA0))
+        add_image_cell(cell, os.path.join(IMG_DIR, title + ".png"), title)
 
     # ================= 四、作品创新点 =================
-    add_para(doc, "四、作品创新点", font=HEI, size=16, space_before=8, space_after=2)
+    add_para(doc, "四、作品创新点", font=HEI, size=16, space_before=2, space_after=2)
+    doc.paragraphs[-1].paragraph_format.keep_with_next = False
+    doc.paragraphs[-1].paragraph_format.widow_control = False
 
     points = [
         ("1. 部位级靶向护理的控制框架。",
@@ -216,17 +267,16 @@ def main():
         pf = p.paragraph_format
         pf.first_line_indent = Cm(0.85)
         pf.line_spacing = 1.5
-        pf.space_after = Pt(2)
+        pf.space_after = Pt(0)
+        pf.widow_control = False
+        pf.keep_together = False
         set_run(p.add_run(head), font=SONG, size=16, bold=True)
         set_run(p.add_run(body), font=SONG, size=16)
 
     # ================= 五、获得荣誉 =================
-    add_para(doc, "五、获得荣誉", font=HEI, size=16, space_before=8, space_after=2)
+    add_para(doc, "五、获得荣誉", font=HEI, size=16, space_before=4, space_after=2)
     add_para(doc, "1. 高校智能机器人创意大赛  国家级三等奖", font=SONG, size=16,
              space_after=2)
-    add_para(doc, "（获奖证书图片待补，文件名：高校智能机器人创意大赛国家三等奖）",
-             font=SONG, size=10.5, align=WD_ALIGN_PARAGRAPH.CENTER,
-             space_after=0, line_spacing=1.0, color=RGBColor(0xA0, 0xA0, 0xA0))
 
     doc.save(OUT_DOCX)
     print("SAVED:", OUT_DOCX)
