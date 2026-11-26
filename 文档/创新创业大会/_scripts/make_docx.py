@@ -29,6 +29,11 @@ IMG_DIR = os.path.join(OUT_DIR, "图片")
 IMG_WIDTH = Cm(6.4)
 COL_WIDTH = Cm(6.65)
 
+# 同时把填好的内容写进学院下发的模板文件本身
+# （原件已备份为 电气与电子工程学院-原始模板备份.docx）
+TEMPLATE_DOCX = r"C:\Users\wegghbur\Desktop\rmagc\文档\创新创业大会\电气与电子工程学院-.docx"
+OUT_ALL = [OUT_DOCX, TEMPLATE_DOCX]
+
 
 def set_run(run, font=SONG, size=16, bold=False, color=None):
     run.font.name = font
@@ -278,8 +283,10 @@ def main():
     add_para(doc, "1. 高校智能机器人创意大赛  国家级三等奖", font=SONG, size=16,
              space_after=2)
 
-    doc.save(OUT_DOCX)
-    print("SAVED:", OUT_DOCX)
+    for p in OUT_ALL:
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        doc.save(p)
+        print("SAVED:", p)
 
 
 if __name__ == "__main__":
