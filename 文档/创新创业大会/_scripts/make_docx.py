@@ -31,7 +31,7 @@ COL_WIDTH = Cm(6.65)
 
 # 同时把填好的内容写进学院下发的模板文件本身
 # （原件已备份为 电气与电子工程学院-原始模板备份.docx）
-TEMPLATE_DOCX = r"C:\Users\wegghbur\Desktop\rmagc\文档\创新创业大会\电气与电子工程学院-.docx"
+TEMPLATE_DOCX = os.path.abspath(os.path.join(HERE, "..", "电气与电子工程学院-.docx"))
 OUT_ALL = [OUT_DOCX, TEMPLATE_DOCX]
 
 
